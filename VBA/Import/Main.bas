@@ -43,6 +43,8 @@ Sub import()
     Logic.importDataToSheet sourceSheet, sourceTableName, targetSheetName, targetTableName, accountNo, sourceColumnNames, targetColumnNames
      
     Application.ScreenUpdating = True
+    
+    MsgBox "Successeful!", vbOKOnly, "Done!"
 End Sub
 
 

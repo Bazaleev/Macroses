@@ -108,8 +108,8 @@ Public Sub importDataToSheet(sourceSheet As Worksheet, sourceTableName As String
     
     'remove duplicates rows
     Set targetTableRange = targetSheet.Range(targetTableName)
-    'targetTableRange.RemoveDuplicates Columns:=(targetColumnIndexes), Header:=xlYes
+    targetTableRange.RemoveDuplicates Columns:=(targetColumnIndexes), Header:=xlYes
 
     'sorting
-    'targetSheet.Range(targetTableName).Sort key1:=targetSheet.Range(targetTableName & "[" & targetColumnNames(0) & "]"), order1:=xlAscending, Header:=xlYes
+    targetSheet.Range(targetTableName).Sort key1:=targetSheet.Range(targetTableName & "[" & targetColumnNames(0) & "]"), order1:=xlAscending, Header:=xlYes
 End Sub
