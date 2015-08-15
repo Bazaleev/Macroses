@@ -47,6 +47,9 @@ Private Sub copyTableValues(sourceSheet As Worksheet, sourceTableName As String,
     Dim rowIdx As Integer
     Dim targetRowIndex As Integer
     Dim targetColumnIndex As Integer
+    Dim startRowIndex As Integer
+    Dim sourceCell As Range
+    Dim targetCell As Range
     
     columnsCount = UBound(sourceColumnNames)
     If columnsCount = UBound(targetColumnNames) Then
@@ -58,11 +61,22 @@ Private Sub copyTableValues(sourceSheet As Worksheet, sourceTableName As String,
             
             targetColumnName = targetColumnNames(columnIndex)
             Set targetColumn = Utils.getColumn(targetSheet, targetTableName, targetColumnName)
+            If startRowIndex = 0 Then
+                'all values are copied starting from first empty cell in first column
+                startRowIndex = Utils.getFirstEmptyCellRowIndex(targetColumn)
+            End If
             
             targetColumnIndex = targetColumn.Column
-            targetRowIndex = Utils.getFirstEmptyCellRowIndex(targetColumn)
+            targetRowIndex = startRowIndex
+            
             For rowIdx = 1 To rowsToCopy.Count
-                targetSheet.Cells(targetRowIndex, targetColumnIndex).Value = sourceSheet.Cells(rowsToCopy(rowIdx), sourceColumnIndex).Value
+                Set sourceCell = sourceSheet.Cells(rowsToCopy(rowIdx), sourceColumnIndex)
+                Set targetCell = targetSheet.Cells(targetRowIndex, targetColumnIndex)
+                
+                'copy value and format from source cell
+                targetCell.Value = sourceCell.Value
+                targetCell.NumberFormat = sourceCell.NumberFormat
+                
                 targetRowIndex = targetRowIndex + 1
             Next rowIdx
         Next columnIndex
@@ -94,8 +108,8 @@ Public Sub importDataToSheet(sourceSheet As Worksheet, sourceTableName As String
     
     'remove duplicates rows
     Set targetTableRange = targetSheet.Range(targetTableName)
-    targetTableRange.RemoveDuplicates Columns:=(targetColumnIndexes), Header:=xlYes
+    'targetTableRange.RemoveDuplicates Columns:=(targetColumnIndexes), Header:=xlYes
 
     'sorting
-    targetSheet.Range(targetTableName).Sort key1:=targetSheet.Range(targetTableName & "[" & targetColumnNames(0) & "]"), order1:=xlAscending, Header:=xlYes
+    'targetSheet.Range(targetTableName).Sort key1:=targetSheet.Range(targetTableName & "[" & targetColumnNames(0) & "]"), order1:=xlAscending, Header:=xlYes
 End Sub
