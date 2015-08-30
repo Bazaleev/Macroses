@@ -100,13 +100,11 @@ Public Sub importDataToSheet(sourceSheet As Worksheet, sourceTableName As String
     Set sourceColumnIndexes = Utils.getColumnIndexes(sourceSheet, sourceTableName, sourceColumnNames)
     Set targetTableRange = targetSheet.Range(targetTableName)
     
-    'sort table for optimised search
-    Utils.sortTable sheet:=targetSheet, tableName:=targetTableName, columnName:=targetColumnNames(0)
     Set newRows = getNewOnlyRows(sourceSheet, sourceColumnIndexes, rowsToCopy, targetSheet, targetTableRange, targetColumnIndexes)
     
     If newRows.Count > 0 Then
         'new values is found copy them
-        copyTableValues sourceSheet, sourceTableName, sourceColumnNames, targetSheet, targetTableName, targetColumnNames, rowsToCopy
+        copyTableValues sourceSheet, sourceTableName, sourceColumnNames, targetSheet, targetTableName, targetColumnNames, newRows
         
         'now sort again with new data
         Utils.sortTable sheet:=targetSheet, tableName:=targetTableName, columnName:=targetColumnNames(0)
@@ -120,36 +118,22 @@ Private Function getNewOnlyRows(sourceSheet As Worksheet, sourceColumnIndexes As
     Dim rowIdx As Integer
     Dim isNew As Boolean
     Dim targetRowIndex As Variant
-    Dim firstSourceColumn As Integer
-    Dim firstTargetColumn As Integer
-    Dim sourceValue As Variant
-    Dim targetValue As Variant
     Dim sourceRowIndex As Integer
-    
-    firstSourceColumn = sourceColumnIndexes(1)
-    firstTargetColumn = targetColumnIndexes(1)
-    
+
     Set targetRowIndexes = Utils.getRowIndexes(targetTable)
     For rowIdx = 1 To rowsToCheck.Count
         isNew = True
         
         sourceRowIndex = CInt(rowsToCheck(rowIdx))
-        sourceValue = sourceSheet.Cells(sourceRowIndex, firstSourceColumn).Value
         For Each targetRowIndex In targetRowIndexes
             If Utils.AreRowsTheSame(sourceSheet, sourceRowIndex, sourceColumnIndexes, targetSheet, CInt(targetRowIndex), targetColumnIndexes) Then
                 isNew = False
                 Exit For
             End If
-            
-            targetValue = targetSheet.Cells(targetRowIndex, firstTargetColumn).Value
-            If targetValue > sourceValue Then
-                'values further are all different as range already sorted by this column
-                Exit For
-            End If
         Next targetRowIndex
         
         If isNew Then
-            newRows.Add (rowsToCheck(rowIdx))
+            newRows.Add (sourceRowIndex)
         End If
     Next rowIdx
     
