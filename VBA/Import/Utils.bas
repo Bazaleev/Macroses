@@ -61,6 +61,58 @@ Public Function getFirstEmptyCellRowIndex(cellsToSearch As Range) As Integer
     getFirstEmptyCellRowIndex = rowIndex
 End Function
 
+'return the indexes of specified columns
+Public Function getColumnIndexes(sheet As Worksheet, tableName As String, columnNames() As String) As Collection
+    Dim columnsCount As Integer
+    Dim columnIndex As Integer
+    Dim idx As Integer
+    Dim columnIndexes As New Collection
+    
+    columnsCount = UBound(columnNames)
+    For idx = 0 To columnsCount - 1
+        columnIndex = getColumnIndex(sheet, tableName, columnNames(idx))
+        columnIndexes.Add (columnIndex)
+    Next idx
+    
+    Set getColumnIndexes = columnIndexes
+End Function
+
+'sort specified table by specified column in ascending order, headers are expected
+Public Sub sortTable(sheet As Worksheet, tableName As String, columnName As String)
+     sheet.Range(tableName).Sort key1:=sheet.Range(tableName & "[" & columnName & "]"), order1:=xlAscending, Header:=xlYes
+End Sub
+
+'returns a row indexes from specified range
+Public Function getRowIndexes(source As Range) As Collection
+    Dim rowIndexes As New Collection
+    Dim currentRow As Range
+    
+    For Each currentRow In source.Rows
+        rowIndexes.Add (currentRow.Row)
+    Next currentRow
+    
+    Set getRowIndexes = rowIndexes
+End Function
+
+Public Function AreRowsTheSame(firstSheet As Worksheet, firstRowIndex As Integer, firstColumnIndexes As Collection, secondSheet As Worksheet, secondRowIndex As Integer, secondColumnIndexes As Collection) As Boolean
+    Dim result As Boolean
+    Dim idx As Integer
+    Dim firstValue As Variant
+    Dim secondValue As Variant
+    
+    result = True
+    For idx = 1 To firstColumnIndexes.Count
+        firstValue = firstSheet.Cells(firstRowIndex, firstColumnIndexes(idx)).Value
+        secondValue = secondSheet.Cells(secondRowIndex, secondColumnIndexes(idx)).Value
+        If firstValue <> secondValue Then
+            result = False
+            Exit For
+        End If
+    Next idx
+    
+    AreRowsTheSame = result
+End Function
+
 
 
 

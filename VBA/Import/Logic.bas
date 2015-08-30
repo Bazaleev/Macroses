@@ -40,7 +40,6 @@ End Function
 Private Sub copyTableValues(sourceSheet As Worksheet, sourceTableName As String, sourceColumnNames() As String, targetSheet As Worksheet, targetTableName As String, targetColumnNames() As String, rowsToCopy As Collection)
     Dim sourceColumnIndex As Integer
     Dim targetColumn As Range
-    Dim columnsCount As Integer
     Dim sourceColumnName As String
     Dim targetColumnName As String
     Dim columnIndex As Integer
@@ -50,6 +49,7 @@ Private Sub copyTableValues(sourceSheet As Worksheet, sourceTableName As String,
     Dim startRowIndex As Integer
     Dim sourceCell As Range
     Dim targetCell As Range
+    Dim columnsCount As Integer
     
     columnsCount = UBound(sourceColumnNames)
     If columnsCount = UBound(targetColumnNames) Then
@@ -87,29 +87,72 @@ End Sub
 Public Sub importDataToSheet(sourceSheet As Worksheet, sourceTableName As String, targetSheetName As String, targetTableName As String, accountNo As String, sourceColumnNames() As String, targetColumnNames() As String)
     Dim targetSheet As Worksheet
     Dim rowsToCopy As Collection
-    Dim targetColumnIndexes As Variant
-    Dim columnsCount As Integer
-    Dim columnIndex As Integer
+    Dim targetColumnIndexes As Collection
+    Dim sourceColumnIndexes As Collection
     Dim idx As Integer
     Dim targetTableRange As Range
-    
-    columnsCount = UBound(targetColumnNames)
+    Dim newRows As Collection
     
     Set rowsToCopy = getRowsToCopy(sourceSheet, sourceTableName, accountNo)
     
     Set targetSheet = Utils.getSheetInCurrentWorkbook(targetSheetName)
-    ReDim targetColumnIndexes(0 To columnsCount - 1)
-    For idx = 0 To columnsCount - 1
-        columnIndex = Utils.getColumnIndex(targetSheet, targetTableName, targetColumnNames(idx))
-        targetColumnIndexes(idx) = columnIndex
-    Next idx
-    
-    copyTableValues sourceSheet, sourceTableName, sourceColumnNames, targetSheet, targetTableName, targetColumnNames, rowsToCopy
-    
-    'remove duplicates rows
+    Set targetColumnIndexes = Utils.getColumnIndexes(targetSheet, targetTableName, targetColumnNames)
+    Set sourceColumnIndexes = Utils.getColumnIndexes(sourceSheet, sourceTableName, sourceColumnNames)
     Set targetTableRange = targetSheet.Range(targetTableName)
-    targetTableRange.RemoveDuplicates Columns:=(targetColumnIndexes), Header:=xlYes
-
-    'sorting
-    targetSheet.Range(targetTableName).Sort key1:=targetSheet.Range(targetTableName & "[" & targetColumnNames(0) & "]"), order1:=xlAscending, Header:=xlYes
+    
+    'sort table for optimised search
+    Utils.sortTable sheet:=targetSheet, tableName:=targetTableName, columnName:=targetColumnNames(0)
+    Set newRows = getNewOnlyRows(sourceSheet, sourceColumnIndexes, rowsToCopy, targetSheet, targetTableRange, targetColumnIndexes)
+    
+    If newRows.Count > 0 Then
+        'new values is found copy them
+        copyTableValues sourceSheet, sourceTableName, sourceColumnNames, targetSheet, targetTableName, targetColumnNames, rowsToCopy
+        
+        'now sort again with new data
+        Utils.sortTable sheet:=targetSheet, tableName:=targetTableName, columnName:=targetColumnNames(0)
+    End If
 End Sub
+
+'filters input values and returns new only. It is expected that table range will be sorted by first column
+Private Function getNewOnlyRows(sourceSheet As Worksheet, sourceColumnIndexes As Collection, rowsToCheck As Collection, targetSheet As Worksheet, targetTable As Range, targetColumnIndexes As Collection) As Collection
+    Dim targetRowIndexes As Collection
+    Dim newRows As New Collection
+    Dim rowIdx As Integer
+    Dim isNew As Boolean
+    Dim targetRowIndex As Variant
+    Dim firstSourceColumn As Integer
+    Dim firstTargetColumn As Integer
+    Dim sourceValue As Variant
+    Dim targetValue As Variant
+    Dim sourceRowIndex As Integer
+    
+    firstSourceColumn = sourceColumnIndexes(1)
+    firstTargetColumn = targetColumnIndexes(1)
+    
+    Set targetRowIndexes = Utils.getRowIndexes(targetTable)
+    For rowIdx = 1 To rowsToCheck.Count
+        isNew = True
+        
+        sourceRowIndex = CInt(rowsToCheck(rowIdx))
+        sourceValue = sourceSheet.Cells(sourceRowIndex, firstSourceColumn).Value
+        For Each targetRowIndex In targetRowIndexes
+            If Utils.AreRowsTheSame(sourceSheet, sourceRowIndex, sourceColumnIndexes, targetSheet, CInt(targetRowIndex), targetColumnIndexes) Then
+                isNew = False
+                Exit For
+            End If
+            
+            targetValue = targetSheet.Cells(targetRowIndex, firstTargetColumn).Value
+            If targetValue > sourceValue Then
+                'values further are all different as range already sorted by this column
+                Exit For
+            End If
+        Next targetRowIndex
+        
+        If isNew Then
+            newRows.Add (rowsToCheck(rowIdx))
+        End If
+    Next rowIdx
+    
+    Set getNewOnlyRows = newRows
+End Function
+
